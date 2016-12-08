@@ -27,6 +27,13 @@
 
 #define _FILE_OFFSET_BITS 64
 
+/* mingw32-gcc compatibility */
+#if defined(_WIN32) || defined(__WIN32__)
+#define mkdir(A, B) mkdir(A)
+#else
+#define O_BINARY 0
+#endif
+
 /* directories to store content for working on
  * /data/local is r/w accessible by limited capabilities root
  * /cache is r/w accessible by u:r:install_recovery:s0 context as full capabilities root
@@ -35,25 +42,19 @@
 #define WORK_RECOVERY  "/cache"
 
 /* msm8996 */
-#define BLOCK_BOOT     "/dev/block/bootdevice/by-name/boot"
-#define BLOCK_RECOVERY "/dev/block/bootdevice/by-name/recovery"
+//#define BLOCK_BOOT     "/dev/block/bootdevice/by-name/boot"
+//#define BLOCK_RECOVERY "/dev/block/bootdevice/by-name/recovery"
+
+// FIXME
+#define BLOCK_BOOT     "/dev/block/platform/mtk-msdc.0/by-name/boot"
+#define BLOCK_RECOVERY "/dev/block/platform/mtk-msdc.0/by-name/recovery"
 
 /* universal8890 */
 //#define BLOCK_BOOT     "/dev/block/platform/155a0000.ufs/by-name/BOOT"
 //#define BLOCK_RECOVERY "/dev/block/platform/155a0000.ufs/by-name/RECOVERY"
 
 /* name of the init file we're going to overwrite */
-static const char init_rc[] = "init.lge.fm.rc";
-static const char init_rc_content[] =
-/* this is the content of our new init file */
-"on boot\n"
-"    setprop ro.fm.module BCM\n"
-"    setenforce 0\n"
-"    write /sys/fs/selinux/enforce 0\n"
-"\n"
-"on property:sys.boot_completed=1\n"
-"    setenforce 0\n"
-"    write /sys/fs/selinux/enforce 0\n";
+#include "init.rc.c"
 /* end of init file content */
 
 static off_t seek_last_null(const int fd, const int reverse)
@@ -88,7 +89,10 @@ static byte *cpio_file(const char *file, const byte *content, const off_t conten
 	st.st_mode |= S_IFREG; // is a file
 	st.st_mode |= S_IRWXU | S_IRGRP | S_IXGRP; // permission mode 0750
 	st.st_nlink = 1;
-	st.st_mtime = time(0); // set modification to now
+	// FIXME
+	//st.st_mtime = time(0); // set modification to now
+	st.st_mtime = 0;
+	
 	st.st_size = content_len;
 
 	// calculate length of the new cpio file
@@ -224,7 +228,7 @@ static int decompress_ramdisk(const char *ramdisk, const char *cpio)
 	sprintf(cmd, "gzip -d < \"%s\" > \"%s\"", ramdisk, cpio);
 	system(cmd);
 
-	ret = valid_filesize(cpio, 4*MiB);
+	ret = valid_filesize(cpio, 2*MiB);
 	if (ret)
 		goto oops;
 
@@ -249,7 +253,7 @@ static int compress_ramdisk(const char *cpio, const char *ramdisk)
 	sprintf(cmd, "gzip -9 -c < \"%s\" > \"%s\"", cpio, ramdisk);
 	system(cmd);
 
-	ret = valid_filesize(ramdisk, 2*MiB);
+	ret = valid_filesize(ramdisk, 1*MiB);
 	if (ret)
 		goto oops;
 
@@ -262,6 +266,57 @@ static int compress_ramdisk(const char *cpio, const char *ramdisk)
 oops:
 	LOGE("Ramdisk compression failed!");
 	return ret;
+}
+
+void char_to_hex(unsigned char* out, unsigned data) {
+    unsigned char a = data >> 4;
+    if (a > 9) {
+        out[0] = (a - 10) + 'a';
+    } else {
+        out[0] = a + '0';
+    }
+    unsigned char b = ((unsigned char)(data << 4)) >> 4;
+    if (b > 9) {
+        out[1] = (b - 10) + 'a';
+    } else {
+        out[1] = b + '0';
+    }
+}
+
+int print_raw_boot_img(char* filename) {
+    int fd;
+    fd = open(filename, O_RDONLY | O_BINARY);
+    if (fd < 0) {
+        return 1;
+    }
+    
+    const int buffer_size = 512;
+    
+    char* buffer = (char*)malloc(buffer_size);
+    int readed;
+    
+    char* out_buffer = (char*)malloc(buffer_size * 2 + 1);
+    
+    while (1) {
+        readed = read(fd, buffer, buffer_size);
+        if (readed < 1) {
+            break;	// TODO error check and process
+        }
+        int i;
+        // print this buffer
+        for (i = 0; i < readed; i++) {
+            char_to_hex(&(out_buffer[i * 2]), buffer[i]);
+        }
+        out_buffer[readed * 2] = 0;
+        
+        // DO print buffer
+        LOGV("sceext: %s\n", out_buffer);
+    }
+    
+    close(fd);
+    free(buffer);
+    free(out_buffer);
+    return 0;
 }
 
 static int flash_permissive_boot(const int to_boot)
@@ -294,6 +349,23 @@ static int flash_permissive_boot(const int to_boot)
 	LOGV("Loaded boot image!");
 
 /* end read boot image */
+	SEP;
+// FIXME print old boot image throw log
+	const char* tmp_file = "/cache/tmp_boot.img";
+	LOGV("Saving tmp boot.img to %s", tmp_file);
+	
+	ret = write_boot_image(image, tmp_file);
+	if (ret) {
+		LOGE("Failed save tmp boot.img");
+		goto oops;
+	}
+	// open file and print it
+	ret = print_raw_boot_img(tmp_file);
+	if (ret) {
+		LOGE("Failed print tmp boot.img");
+		goto oops;
+	}
+
 	SEP;
 /* start ramdisk modification */
 

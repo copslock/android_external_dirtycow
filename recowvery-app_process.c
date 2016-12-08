@@ -80,8 +80,8 @@ int main(void)
 	 * we should wait 3 minutes to allow the flash to complete
 	 * and for the user to reboot their device
 	 */
-	LOGV("Waiting 3 minutes to try again (in case it didn't start or you forgot to dirtycow applypatch first)...");
-	sleep(180);
+	LOGV("Waiting 1 minutes to try again (in case it didn't start or you forgot to dirtycow applypatch first)...");
+	sleep(60);
 	return 0;
 oops:
 	/*

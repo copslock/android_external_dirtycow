@@ -6,6 +6,7 @@ LOCAL_SRC_FILES := \
 	dirtycow.c
 LOCAL_CFLAGS += -DDEBUG
 LOCAL_SHARED_LIBRARIES := liblog
+LOCAL_LDLIBS := -llog
 LOCAL_SDK_VERSION := 21
 include $(BUILD_EXECUTABLE)
 
@@ -20,11 +21,14 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 LOCAL_MODULE := recowvery-applypatch
 LOCAL_SRC_FILES := \
-	recowvery-applypatch.c
+	recowvery-applypatch.c \
+	libbootimg.c \
+	mincrypt/sha.c
 LOCAL_C_INCLUDES := external/libbootimg
 LOCAL_CFLAGS += -DDEBUG -Os
 LOCAL_SHARED_LIBRARIES := liblog
 LOCAL_STATIC_LIBRARIES := libbootimg-static
+LOCAL_LDLIBS := -llog
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -37,6 +41,7 @@ LOCAL_SRC_FILES := \
 LOCAL_CFLAGS += -DDEBUG -Os
 LOCAL_CFLAGS_64 := -D_64BIT
 LOCAL_SHARED_LIBRARIES := liblog libcutils libselinux
+LOCAL_LDLIBS := -llog -lselinux -lcutils
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -45,4 +50,6 @@ LOCAL_SRC_FILES := \
 	recowvery-run-as.c
 LOCAL_CFLAGS += -Os
 LOCAL_SHARED_LIBRARIES := libselinux
+LOCAL_LDLIBS := -lselinux
 include $(BUILD_EXECUTABLE)
+
