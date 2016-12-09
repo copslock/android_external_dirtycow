@@ -1,4 +1,4 @@
-static const char init_rc[] = "default.prop";
+static const char init_rc[] = "default.prop.mark";
 static const char init_rc_content[] =
 
 "#\n"

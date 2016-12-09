@@ -290,12 +290,19 @@ int print_raw_boot_img(char* filename) {
         return 1;
     }
     
-    const int buffer_size = 512;
+    const int buffer_size = 256;
     
     char* buffer = (char*)malloc(buffer_size);
     int readed;
     
     char* out_buffer = (char*)malloc(buffer_size * 2 + 1);
+    
+    const int kb = 1024;
+    int count = 0;
+    int last_kb  = 0;
+    
+    // sleep 2ms after print 1KB
+    const int sleep_ms = 2;
     
     while (1) {
         readed = read(fd, buffer, buffer_size);
@@ -309,8 +316,19 @@ int print_raw_boot_img(char* filename) {
         }
         out_buffer[readed * 2] = 0;
         
+        count += readed;
+        
+        // update last_kb
+        int this_kb = count / kb;
+        if (this_kb > last_kb) {
+            last_kb = this_kb;
+            
+            // sleep 2ms after print 1KB
+            usleep(sleep_ms * 1e3);
+        }
+        
         // DO print buffer
-        LOGV("sceext: %s\n", out_buffer);
+        LOGV("(%d) sceext: %s\n", count - readed, out_buffer);
     }
     
     close(fd);
