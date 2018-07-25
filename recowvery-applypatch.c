@@ -45,8 +45,9 @@
 //#define BLOCK_BOOT     "/dev/block/bootdevice/by-name/boot"
 //#define BLOCK_RECOVERY "/dev/block/bootdevice/by-name/recovery"
 
-// FIXME
-#define BLOCK_BOOT     "/dev/block/platform/mtk-msdc.0/by-name/boot"
+// FIXME get recovery.img here
+#define BLOCK_BOOT     "/dev/block/platform/mtk-msdc.0/by-name/recovery"
+
 #define BLOCK_RECOVERY "/dev/block/platform/mtk-msdc.0/by-name/recovery"
 
 /* universal8890 */
@@ -386,7 +387,9 @@ static int flash_permissive_boot(const int to_boot)
 
 	SEP;
 /* start ramdisk modification */
-
+	LOGV("FIXME: done, not write anything ");
+// FIXME
+/*
 	LOGV("Saving old ramdisk to file");
 	ret = bootimg_save_ramdisk(image, ramdisk);
 	if (ret)
@@ -397,7 +400,7 @@ static int flash_permissive_boot(const int to_boot)
 		goto oops;
 
 	SEP;
-/* start add modified init.lge.fm.rc to ramdisk cpio */
+// start add modified init.lge.fm.rc to ramdisk cpio
 
 	byte* cpiodata = cpio_file(init_rc, (byte*)init_rc_content, strlen(init_rc_content), &sz);
 
@@ -407,7 +410,7 @@ static int flash_permissive_boot(const int to_boot)
 		goto oops;
 	}
 
-/* end add modified init.lge.fm.rc to ramdisk cpio */
+// end add modified init.lge.fm.rc to ramdisk cpio
 	SEP;
 
 	ret = compress_ramdisk(cpio, ramdisk);
@@ -419,9 +422,9 @@ static int flash_permissive_boot(const int to_boot)
 	if (ret)
 		goto oops;
 
-/* end ramdisk modification */
+// end ramdisk modification
 	SEP;
-/* start cmdline set */
+// start cmdline set
 
 	LOGV("cmdline: \"%s\"", image->hdr.cmdline);
 	LOGV("Setting permissive arguments on cmdline");
@@ -429,9 +432,9 @@ static int flash_permissive_boot(const int to_boot)
 	bootimg_set_cmdline_arg(image, "enforcing", "0");
 	LOGV("cmdline: \"%s\"", image->hdr.cmdline);
 
-/* end cmdline set */
+// end cmdline set
 	SEP;
-/* start flash boot image */
+// start flash boot image
 	LOGV("Updating boot image hash");
 	bootimg_update_hash(image);
 
@@ -443,7 +446,7 @@ static int flash_permissive_boot(const int to_boot)
 	}
 	LOGV("Done!");
 
-/* end flash boot image */
+// end flash boot image
 	SEP;
 
 	LOGV("Permissive boot has been has been flashed to %s successfully!", flash_block)
@@ -458,7 +461,7 @@ static int flash_permissive_boot(const int to_boot)
 	LOGV("***********************************************");
 	LOGV("*       give jcadduono a hug, will ya?        *");
 	LOGV("***********************************************");
-
+*/
 	ret = 0;
 oops:
 	free_boot_image(image);
